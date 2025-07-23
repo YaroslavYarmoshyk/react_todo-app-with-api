@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { Todo } from '../../types/Todo';
+import { ERROR_MESSAGES } from '../../constants';
 
 type Props = {
   todos: Todo[];
@@ -29,7 +30,7 @@ export const TodoHeader: React.FC<Props> = ({
     const trimmedTitle = title.trim();
 
     if (!trimmedTitle) {
-      onError('Title should not be empty');
+      onError(ERROR_MESSAGES.EMPTY_TITLE);
 
       return;
     }

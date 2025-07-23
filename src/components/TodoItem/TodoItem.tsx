@@ -1,5 +1,5 @@
 import { Todo } from '../../types/Todo';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo, useCallback } from 'react';
 import classNames from 'classnames';
 
 type Props = {
@@ -9,7 +9,7 @@ type Props = {
   onDelete: (id: number) => Promise<void>;
 };
 
-export const TodoItem: React.FC<Props> = ({
+const TodoItemComponent: React.FC<Props> = ({
   todo,
   isSubmitting = false,
   onUpdate,
@@ -25,16 +25,18 @@ export const TodoItem: React.FC<Props> = ({
     }
   }, [isEditing]);
 
-  const cancelEditing = () => {
+  const cancelEditing = useCallback(() => {
     setIsEditing(false);
     setTempTitle(todo.title);
-  };
+  }, [todo.title]);
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     const trimmed = tempTitle.trim();
 
     if (!trimmed) {
-      onDelete(todo.id).then(() => cancelEditing());
+      onDelete(todo.id)
+        .then(() => cancelEditing())
+        .catch(() => setIsEditing(true));
 
       return;
     }
@@ -48,28 +50,52 @@ export const TodoItem: React.FC<Props> = ({
     onUpdate({ ...todo, title: trimmed })
       .then(() => setIsEditing(false))
       .catch(() => setIsEditing(true));
-  };
+  }, [tempTitle, todo, onUpdate, onDelete, cancelEditing]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     if (isEditing) {
       handleSubmit();
     }
-  };
+  }, [isEditing, handleSubmit]);
 
-  const handleKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Escape') {
-      cancelEditing();
-    }
-  };
+  const handleKeyUp = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'Escape') {
+        cancelEditing();
+      }
+    },
+    [cancelEditing],
+  );
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setTempTitle(event.target.value);
-  };
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setTempTitle(event.target.value);
+    },
+    [],
+  );
 
-  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    handleSubmit();
-  };
+  const handleFormSubmit = useCallback(
+    (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      handleSubmit();
+    },
+    [handleSubmit],
+  );
+
+  const handleToggle = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      onUpdate({ ...todo, completed: event.target.checked });
+    },
+    [todo, onUpdate],
+  );
+
+  const handleDelete = useCallback(() => {
+    onDelete(todo.id);
+  }, [todo.id, onDelete]);
+
+  const handleDoubleClick = useCallback(() => {
+    setIsEditing(true);
+  }, []);
 
   return (
     <section key={todo.id} className="todoapp__main" data-cy="TodoList">
@@ -88,7 +114,7 @@ export const TodoItem: React.FC<Props> = ({
             type="checkbox"
             className="todo__status"
             checked={todo.completed}
-            onChange={e => onUpdate({ ...todo, completed: e.target.checked })}
+            onChange={handleToggle}
           />
         </label>
 
@@ -110,7 +136,7 @@ export const TodoItem: React.FC<Props> = ({
             <span
               data-cy="TodoTitle"
               className="todo__title"
-              onDoubleClick={() => setIsEditing(true)}
+              onDoubleClick={handleDoubleClick}
             >
               {todo.title}
             </span>
@@ -119,7 +145,7 @@ export const TodoItem: React.FC<Props> = ({
               type="button"
               className="todo__remove"
               data-cy="TodoDelete"
-              onClick={() => onDelete(todo.id)}
+              onClick={handleDelete}
             >
               ×
             </button>
@@ -139,3 +165,5 @@ export const TodoItem: React.FC<Props> = ({
     </section>
   );
 };
+
+export const TodoItem = memo(TodoItemComponent);

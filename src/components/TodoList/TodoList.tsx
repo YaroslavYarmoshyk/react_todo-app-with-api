@@ -6,8 +6,8 @@ import { CSSTransition, TransitionGroup } from 'react-transition-group';
 type Props = {
   todos: Todo[];
   submittingTodoIds?: number[];
-  onUpdate: (todo: Todo) => void;
-  onDelete: (id: number) => void;
+  onUpdate: (todo: Todo) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
 };
 
 export const TodoList: React.FC<Props> = ({
